@@ -35,6 +35,7 @@ export default function App() {
         {activeModule === 'publico' && <ModulePublico data={aggregated} />}
         {activeModule === 'crm' && <ModuleCRM data={aggregated} />}
         {activeModule === 'cardapio' && <ModuleCardapio data={aggregated} />}
+        {activeModule === 'birthdays' && <ModuleBirthdays data={aggregated} />}
       </main>
 
       {/* Footer */}
