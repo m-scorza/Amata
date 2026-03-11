@@ -1,4 +1,7 @@
 import React from 'react';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from 'recharts';
 
 const formatBRL = (v) => `R$ ${(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
@@ -8,11 +11,25 @@ const CENARIO_STYLES = {
   evento: { borderColor: '#10B981', badge: 'Potencial Máximo' },
 };
 
+const CustomTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-[#1a1a1a] border border-[#D4A843]/30 rounded-lg px-4 py-3 shadow-xl">
+      <p className="text-white/60 text-xs mb-1">{label}</p>
+      {payload.map((p, i) => (
+        <p key={i} className="text-sm" style={{ color: p.color }}>
+          {p.value.toLocaleString('pt-BR')} alunos
+        </p>
+      ))}
+    </div>
+  );
+};
+
 export default function ModuleUniversity({ data }) {
   const { university } = data;
   if (!university) return null;
 
-  const { cenarios, faculdades, projecao } = university;
+  const { cenarios, faculdades, evolucaoUniversitaria, projecao } = university;
   const cenariosArr = [
     { key: 'normal', ...cenarios.normal },
     { key: 'lista', ...cenarios.lista },
@@ -54,6 +71,34 @@ export default function ModuleUniversity({ data }) {
           })}
         </div>
       </div>
+
+      {/* Evolução da base universitária */}
+      {evolucaoUniversitaria && (
+        <div className="bg-[#1a1a1a] rounded-xl p-5 border border-white/5">
+          <h3 className="text-sm font-semibold text-white/70 mb-4">Crescimento da Base Universitária</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <AreaChart data={evolucaoUniversitaria}>
+              <defs>
+                <linearGradient id="gradDourado" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#D4A843" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="#D4A843" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+              <XAxis dataKey="mes" tick={{ fill: '#999', fontSize: 11 }} />
+              <YAxis tick={{ fill: '#999', fontSize: 11 }} />
+              <Tooltip content={<CustomTooltip />} />
+              <Area
+                type="monotone"
+                dataKey="total"
+                stroke="#D4A843"
+                strokeWidth={2}
+                fill="url(#gradDourado)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Base de alunos por faculdade */}
       <div className="bg-[#1a1a1a] rounded-xl p-5 border border-white/5">

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Calendar, Filter, Music } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calendar, CalendarRange, Music } from 'lucide-react';
 
 const PERIODOS = [
   { value: 7, label: '7 dias' },
@@ -16,6 +16,8 @@ const NOITES_FILTRO = [
 ];
 
 export default function Header({ filters, setFilters, activeModule, setActiveModule }) {
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
   const MODULES = [
     { id: 'performance', label: 'Performance' },
     { id: 'publico', label: 'Público' },
@@ -24,6 +26,17 @@ export default function Header({ filters, setFilters, activeModule, setActiveMod
     { id: 'birthdays', label: 'Aniversários' },
     { id: 'university', label: 'Universitário' },
   ];
+
+  const hasCustomDates = filters.dataInicio && filters.dataFim;
+
+  const formatDateLabel = () => {
+    if (!filters.dataInicio || !filters.dataFim) return null;
+    const fmtDate = (s) => {
+      const [y, m, d] = s.split('-');
+      return `${d}/${m}`;
+    };
+    return `${fmtDate(filters.dataInicio)} — ${fmtDate(filters.dataFim)}`;
+  };
 
   const handleDateChange = (field, value) => {
     setFilters((f) => ({
@@ -40,6 +53,7 @@ export default function Header({ filters, setFilters, activeModule, setActiveMod
       dataInicio: '',
       dataFim: '',
     }));
+    setShowDatePicker(false);
   };
 
   return (
@@ -76,22 +90,39 @@ export default function Header({ filters, setFilters, activeModule, setActiveMod
               ))}
             </div>
 
-            {/* Date range picker */}
-            <div className="flex items-center gap-2 bg-[#1a1a1a] rounded-lg px-3 py-2 border border-white/10">
-              <span className="text-white/40 text-xs">De</span>
-              <input
-                type="date"
-                value={filters.dataInicio || ''}
-                onChange={(e) => handleDateChange('dataInicio', e.target.value)}
-                className="bg-transparent text-white/80 text-xs outline-none cursor-pointer [color-scheme:dark]"
-              />
-              <span className="text-white/40 text-xs">Até</span>
-              <input
-                type="date"
-                value={filters.dataFim || ''}
-                onChange={(e) => handleDateChange('dataFim', e.target.value)}
-                className="bg-transparent text-white/80 text-xs outline-none cursor-pointer [color-scheme:dark]"
-              />
+            {/* Collapsed date picker */}
+            <div className="relative">
+              <button
+                onClick={() => setShowDatePicker(!showDatePicker)}
+                className={`flex items-center gap-2 bg-[#1a1a1a] rounded-lg px-3 py-2 border transition-all ${
+                  hasCustomDates
+                    ? 'border-[#D4A843]/50 text-[#D4A843]'
+                    : 'border-white/10 text-white/60 hover:text-white'
+                }`}
+              >
+                <CalendarRange size={14} />
+                <span className="text-xs font-medium">
+                  {hasCustomDates ? formatDateLabel() : 'Personalizado'}
+                </span>
+              </button>
+              {showDatePicker && (
+                <div className="absolute top-full mt-2 right-0 bg-[#1a1a1a] border border-white/10 rounded-lg p-3 shadow-xl z-50 flex items-center gap-2">
+                  <span className="text-white/40 text-xs">De</span>
+                  <input
+                    type="date"
+                    value={filters.dataInicio || ''}
+                    onChange={(e) => handleDateChange('dataInicio', e.target.value)}
+                    className="bg-[#0a0a0a] text-white/80 text-xs outline-none cursor-pointer rounded px-2 py-1 border border-white/10 [color-scheme:dark]"
+                  />
+                  <span className="text-white/40 text-xs">Até</span>
+                  <input
+                    type="date"
+                    value={filters.dataFim || ''}
+                    onChange={(e) => handleDateChange('dataFim', e.target.value)}
+                    className="bg-[#0a0a0a] text-white/80 text-xs outline-none cursor-pointer rounded px-2 py-1 border border-white/10 [color-scheme:dark]"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-2 bg-[#1a1a1a] rounded-lg px-3 py-2 border border-white/10">

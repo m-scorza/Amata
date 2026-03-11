@@ -539,6 +539,35 @@ export function computeAggregations(data, filters) {
   const deltaAniversario = receitaMediaComAniversario - receitaMediaSemAniversario;
   const deltaAniversarioPct = ((deltaAniversario / receitaMediaSemAniversario) * 100).toFixed(0);
 
+  // Ocupação próximas 4 semanas (mock)
+  // Hoje é 11/03/2026 (quarta). Próximas datas:
+  const ocupacaoSemanas = [
+    {
+      label: 'Sem. 12/03',
+      quinta: { data: '12/03', reservas: 2 },
+      sexta: { data: '13/03', reservas: 1 },
+      sabado: { data: '14/03', reservas: 3 },
+    },
+    {
+      label: 'Sem. 19/03',
+      quinta: { data: '19/03', reservas: 1 },
+      sexta: { data: '20/03', reservas: 0 },
+      sabado: { data: '21/03', reservas: 2 },
+    },
+    {
+      label: 'Sem. 26/03',
+      quinta: { data: '26/03', reservas: 0 },
+      sexta: { data: '27/03', reservas: 1 },
+      sabado: { data: '28/03', reservas: 1 },
+    },
+    {
+      label: 'Sem. 02/04',
+      quinta: { data: '02/04', reservas: 0 },
+      sexta: { data: '03/04', reservas: 0 },
+      sabado: { data: '04/04', reservas: 0 },
+    },
+  ];
+
   // University module data
   const faculdades = [
     { nome: 'Mauá', alunos: 1420, presencas: 3850, ultimaPresenca: '2026-03-07', maturidade: 82 },
@@ -577,6 +606,15 @@ export function computeAggregations(data, filters) {
       ticketBar: 150,
     },
   };
+
+  const evolucaoUniversitaria = [
+    { mes: 'Out/25', total: 120 },
+    { mes: 'Nov/25', total: 280 },
+    { mes: 'Dez/25', total: 520 },
+    { mes: 'Jan/26', total: 830 },
+    { mes: 'Fev/26', total: 1100 },
+    { mes: 'Mar/26', total: 1430 },
+  ];
 
   const receitaEventoFechado = cenarios.evento.receitaBar + cenarios.evento.receitaEntrada;
   const receitaNormal = cenarios.normal.receitaBar + cenarios.normal.receitaEntrada;
@@ -671,6 +709,7 @@ export function computeAggregations(data, filters) {
     university: {
       cenarios,
       faculdades,
+      evolucaoUniversitaria,
       projecao: {
         receitaEvento: receitaEventoFechado,
         equivaleQuintas,
@@ -682,6 +721,7 @@ export function computeAggregations(data, filters) {
       receitaPotencialSemana,
       receitaConfirmada,
       taxaConversao,
+      ocupacaoSemanas,
       comparativo: {
         comAniversario: receitaMediaComAniversario,
         semAniversario: receitaMediaSemAniversario,

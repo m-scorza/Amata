@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, Legend,
@@ -72,16 +72,13 @@ export default function ModulePerformance({ data }) {
     'Espumantes': '#F472B6',
   };
 
-  // Small multiples: compute synchronized Y-axis max
-  const yMax = useMemo(() => {
-    let max = 0;
-    for (const week of evolucaoSemanal) {
-      for (const n of NOITES_CONFIG) {
-        if (week[n.id] > max) max = week[n.id];
-      }
-    }
-    return Math.ceil(max / 10000) * 10000;
-  }, [evolucaoSemanal]);
+  const [visibleNoites, setVisibleNoites] = useState({
+    flow: true, anos2000: true, salseiro: true, ritmos: true,
+  });
+
+  const toggleNoite = (id) => {
+    setVisibleNoites((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -190,43 +187,52 @@ export default function ModulePerformance({ data }) {
         </ResponsiveContainer>
       </div>
 
-      {/* Small multiples: Revenue evolution per night */}
-      <div>
-        <h3 className="text-sm font-semibold text-white/70 mb-4">Evolução Semanal da Receita por Noite</h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {NOITES_CONFIG.map((n) => (
-            <div key={n.id} className="bg-[#1a1a1a] rounded-xl p-4 border border-white/5">
-              <h4 className="text-xs font-semibold mb-3" style={{ color: n.cor }}>{n.nome}</h4>
-              <ResponsiveContainer width="100%" height={160}>
-                <LineChart data={evolucaoSemanal}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                  <XAxis
-                    dataKey="semana"
-                    tick={{ fill: '#666', fontSize: 9 }}
-                    tickFormatter={(v) => {
-                      const d = new Date(v + 'T12:00:00');
-                      return `${d.getDate()}/${d.getMonth() + 1}`;
-                    }}
-                  />
-                  <YAxis
-                    tick={{ fill: '#666', fontSize: 9 }}
-                    tickFormatter={formatK}
-                    domain={[0, yMax]}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Line
-                    type="monotone"
-                    dataKey={n.id}
-                    name={n.nome}
-                    stroke={n.cor}
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          ))}
+      {/* Revenue evolution - interactive single chart */}
+      <div className="bg-[#1a1a1a] rounded-xl p-5 border border-white/5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-white/70">Evolução Semanal da Receita por Noite</h3>
+          <div className="flex items-center gap-3">
+            {NOITES_CONFIG.map((n) => (
+              <button
+                key={n.id}
+                onClick={() => toggleNoite(n.id)}
+                className="flex items-center gap-1.5 px-2 py-1 rounded transition-all cursor-pointer"
+                style={{ opacity: visibleNoites[n.id] ? 1 : 0.3 }}
+              >
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: n.cor }} />
+                <span className="text-xs text-white/70">{n.nome}</span>
+              </button>
+            ))}
+          </div>
         </div>
+        <ResponsiveContainer width="100%" height={400}>
+          <LineChart data={evolucaoSemanal}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+            <XAxis
+              dataKey="semana"
+              tick={{ fill: '#999', fontSize: 10 }}
+              tickFormatter={(v) => {
+                const d = new Date(v + 'T12:00:00');
+                return `${d.getDate()}/${d.getMonth() + 1}`;
+              }}
+            />
+            <YAxis tick={{ fill: '#999', fontSize: 11 }} tickFormatter={formatK} />
+            <Tooltip content={<CustomTooltip />} />
+            {NOITES_CONFIG.map((n) =>
+              visibleNoites[n.id] ? (
+                <Line
+                  key={n.id}
+                  type="monotone"
+                  dataKey={n.id}
+                  name={n.nome}
+                  stroke={n.cor}
+                  strokeWidth={2}
+                  dot={false}
+                />
+              ) : null
+            )}
+          </LineChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
