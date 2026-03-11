@@ -177,11 +177,19 @@ export default function ModulePublico({ data }) {
                   <td className="text-right py-3 px-4">
                     <span className="bg-[#D4A843]/20 text-[#D4A843] px-2 py-1 rounded text-xs">{row.faixaDominante}</span>
                   </td>
-                  {row.faixas.map((f) => (
-                    <td key={f.faixa} className="text-right py-3 px-4 text-white/70">
-                      {row.total > 0 ? ((f.count / row.total) * 100).toFixed(0) : 0}%
-                    </td>
-                  ))}
+                  {row.faixas.map((f) => {
+                    const pct = row.total > 0 ? (f.count / row.total) * 100 : 0;
+                    const opacity = Math.min(pct / 40, 1) * 0.6 + 0.05;
+                    return (
+                      <td
+                        key={f.faixa}
+                        className="text-right py-3 px-4 text-white font-medium"
+                        style={{ backgroundColor: `rgba(212,168,67,${opacity.toFixed(2)})` }}
+                      >
+                        {pct.toFixed(0)}%
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>

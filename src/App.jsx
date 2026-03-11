@@ -6,12 +6,14 @@ import ModulePerformance from './components/ModulePerformance';
 import ModulePublico from './components/ModulePublico';
 import ModuleCRM from './components/ModuleCRM';
 import ModuleCardapio from './components/ModuleCardapio';
+import ModuleBirthdays from './components/ModuleBirthdays';
+import ModuleUniversity from './components/ModuleUniversity';
 
 // Generate data once (deterministic)
 const rawData = generateMockData();
 
 export default function App() {
-  const [filters, setFilters] = useState({ periodo: 90, noite: 'todas' });
+  const [filters, setFilters] = useState({ periodo: 90, noite: 'todas', dataInicio: '', dataFim: '' });
   const [activeModule, setActiveModule] = useState('performance');
 
   const aggregated = useMemo(
@@ -36,12 +38,13 @@ export default function App() {
         {activeModule === 'crm' && <ModuleCRM data={aggregated} />}
         {activeModule === 'cardapio' && <ModuleCardapio data={aggregated} />}
         {activeModule === 'birthdays' && <ModuleBirthdays data={aggregated} />}
+        {activeModule === 'university' && <ModuleUniversity data={aggregated} />}
       </main>
 
       {/* Footer */}
       <footer className="border-t border-white/5 py-4 mt-8">
         <div className="max-w-[1920px] mx-auto px-4 lg:px-8 flex items-center justify-between text-xs text-white/20">
-          <span>AMATA SP — Dashboard BI · Dados simulados para demonstração</span>
+          <span>AMATA SP — Dashboard BI</span>
           <span>Powered by ZigPay Data Pipeline</span>
         </div>
       </footer>

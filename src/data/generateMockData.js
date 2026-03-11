@@ -310,11 +310,27 @@ export function computeAggregations(data, filters) {
     cisFiltrados = cisFiltrados.filter((c) => c.noite_id === filters.noite);
   }
 
-  // KPIs
+  // KPIs — current period
   const receitaTotal = txFiltradas.reduce((s, t) => s + t.valor_total, 0);
   const clientesUnicos = new Set(cisFiltrados.map((c) => c.cliente_id)).size;
   const totalPublico = cisFiltrados.length;
   const ticketMedio = totalPublico > 0 ? receitaTotal / totalPublico : 0;
+
+  // KPIs — previous period (for variation)
+  const dataInicioPrev = new Date(dataInicio);
+  dataInicioPrev.setDate(dataInicioPrev.getDate() - diasFiltro);
+  const dataInicioPrevStr = dataInicioPrev.toISOString().split('T')[0];
+  const txPrev = transacoes.filter((t) => t.data >= dataInicioPrevStr && t.data < dataInicioStr)
+    .filter((t) => !filters.noite || filters.noite === 'todas' || t.noite_id === filters.noite);
+  const cisPrev = checkins.filter((c) => c.data >= dataInicioPrevStr && c.data < dataInicioStr)
+    .filter((c) => !filters.noite || filters.noite === 'todas' || c.noite_id === filters.noite);
+
+  const receitaPrev = txPrev.reduce((s, t) => s + t.valor_total, 0);
+  const publicoPrev = cisPrev.length;
+  const unicosPrev = new Set(cisPrev.map((c) => c.cliente_id)).size;
+  const ticketPrev = publicoPrev > 0 ? receitaPrev / publicoPrev : 0;
+
+  const calcVar = (cur, prev) => prev > 0 ? (cur - prev) / prev : 0;
 
   // Per-night aggregations
   const noitesConfig = [
@@ -489,6 +505,84 @@ export function computeAggregations(data, filters) {
     return dia >= diaAtual && dia < fimSemana;
   });
 
+  // Churn risk: clients that were Frequente or VIP but last visit > 30 days ago
+  const d30agoChurn = new Date(hoje);
+  d30agoChurn.setDate(d30agoChurn.getDate() - 30);
+  const d30churnStr = d30agoChurn.toISOString().split('T')[0];
+  const churnClientes = clienteRanking
+    .slice(0, top20pct) // VIP + Frequente
+    .filter((c) => c.ultimaVisita < d30churnStr);
+  const churnGastoTotal = churnClientes.reduce((s, c) => s + c.gasto, 0);
+
+  // Birthdays module data
+  const statusOptions = ['Identificado', 'Contatado', 'Confirmado'];
+  const aniversariantesDetalhados = aniversariantesMes.slice(0, 20).map((c, i) => {
+    const statusWeights = [0.35, 0.35, 0.30];
+    let r = (i * 7 + 3) % 10 / 10;
+    let status;
+    if (r < statusWeights[0]) status = 'Identificado';
+    else if (r < statusWeights[0] + statusWeights[1]) status = 'Contatado';
+    else status = 'Confirmado';
+    return { ...c, status };
+  });
+
+  const confirmados = aniversariantesDetalhados.filter((a) => a.status === 'Confirmado');
+  const convidadosMediaEstimada = 12;
+  const gastoMedioPorPessoa = 145;
+  const receitaPotencialSemana = aniversariantesSemana.length * convidadosMediaEstimada * gastoMedioPorPessoa;
+  const receitaConfirmada = confirmados.length * convidadosMediaEstimada * gastoMedioPorPessoa;
+  const contatados = aniversariantesDetalhados.filter((a) => a.status !== 'Identificado').length;
+  const taxaConversao = contatados > 0 ? ((confirmados.length / contatados) * 100).toFixed(0) : 0;
+
+  const receitaMediaComAniversario = 127500;
+  const receitaMediaSemAniversario = 89000;
+  const deltaAniversario = receitaMediaComAniversario - receitaMediaSemAniversario;
+  const deltaAniversarioPct = ((deltaAniversario / receitaMediaSemAniversario) * 100).toFixed(0);
+
+  // University module data
+  const faculdades = [
+    { nome: 'Mauá', alunos: 1420, presencas: 3850, ultimaPresenca: '2026-03-07', maturidade: 82 },
+    { nome: 'Mackenzie', alunos: 1180, presencas: 3200, ultimaPresenca: '2026-03-08', maturidade: 78 },
+    { nome: 'Insper', alunos: 890, presencas: 2400, ultimaPresenca: '2026-03-06', maturidade: 71 },
+    { nome: 'FGV', alunos: 750, presencas: 1800, ultimaPresenca: '2026-03-01', maturidade: 63 },
+    { nome: 'ESPM', alunos: 680, presencas: 1650, ultimaPresenca: '2026-03-08', maturidade: 58 },
+    { nome: 'PUC-SP', alunos: 620, presencas: 1400, ultimaPresenca: '2026-02-28', maturidade: 52 },
+    { nome: 'USP', alunos: 540, presencas: 1100, ultimaPresenca: '2026-03-05', maturidade: 44 },
+    { nome: 'FEI', alunos: 380, presencas: 750, ultimaPresenca: '2026-02-22', maturidade: 35 },
+  ];
+
+  const cenarios = {
+    normal: {
+      label: 'Quinta Normal',
+      publico: 320,
+      receitaBar: 48000,
+      receitaEntrada: 19200,
+      descEntrada: 'R$60 seco',
+      ticketBar: 150,
+    },
+    lista: {
+      label: 'Quinta c/ Lista Universitária',
+      publico: 580,
+      receitaBar: 72500,
+      receitaEntrada: 24750,
+      descEntrada: 'mix R$60 + R$75 consuma',
+      ticketBar: 125,
+    },
+    evento: {
+      label: 'Quinta Evento Fechado',
+      publico: 900,
+      receitaBar: 135000,
+      receitaEntrada: 67500,
+      descEntrada: 'R$75 consuma',
+      ticketBar: 150,
+    },
+  };
+
+  const receitaEventoFechado = cenarios.evento.receitaBar + cenarios.evento.receitaEntrada;
+  const receitaNormal = cenarios.normal.receitaBar + cenarios.normal.receitaEntrada;
+  const equivaleQuintas = (receitaEventoFechado / receitaNormal).toFixed(1);
+  const faculdadesProntas = faculdades.filter((f) => f.maturidade >= 75).length;
+
   // Cross-selling: Saturday clients who never came on Thursday
   const clientesSabado = new Set(checkins.filter((c) => c.noite_id === 'ritmos' && c.data >= dataInicioStr).map((c) => c.cliente_id));
   const clientesQuinta = new Set(checkins.filter((c) => c.noite_id === 'flow' && c.data >= dataInicioStr).map((c) => c.cliente_id));
@@ -560,7 +654,13 @@ export function computeAggregations(data, filters) {
   }
 
   return {
-    kpis: { receitaTotal, ticketMedio, totalPublico, clientesUnicos },
+    kpis: {
+      receitaTotal, ticketMedio, totalPublico, clientesUnicos,
+      receitaTotalVariacao: calcVar(receitaTotal, receitaPrev),
+      ticketMedioVariacao: calcVar(ticketMedio, ticketPrev),
+      totalPublicoVariacao: calcVar(totalPublico, publicoPrev),
+      clientesUnicosVariacao: calcVar(clientesUnicos, unicosPrev),
+    },
     porNoite,
     evolucaoSemanal,
     perfilPorNoite,
@@ -568,6 +668,28 @@ export function computeAggregations(data, filters) {
     segmentacao,
     aniversariantesSemana,
     aniversariantesMes,
+    university: {
+      cenarios,
+      faculdades,
+      projecao: {
+        receitaEvento: receitaEventoFechado,
+        equivaleQuintas,
+        faculdadesProntas,
+      },
+    },
+    birthdays: {
+      aniversariantes: aniversariantesDetalhados,
+      receitaPotencialSemana,
+      receitaConfirmada,
+      taxaConversao,
+      comparativo: {
+        comAniversario: receitaMediaComAniversario,
+        semAniversario: receitaMediaSemAniversario,
+        delta: deltaAniversario,
+        deltaPct: deltaAniversarioPct,
+      },
+    },
+    churnRisk: { count: churnClientes.length, gastoTotal: churnGastoTotal },
     crossSell: { pct: crossSellPct, total: sabadoNuncaQuinta.length, totalSabado: clientesSabado.size },
     crm: {
       clientesUnicos30d: clientesRecentes.length,

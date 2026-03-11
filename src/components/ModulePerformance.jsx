@@ -1,18 +1,18 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  LineChart, Line, Legend,
 } from 'recharts';
 
 const formatBRL = (v) => `R$ ${(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 const formatK = (v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v;
 
-const CORES_NOITE = {
-  'Flow Like SP': '#8B5CF6',
-  'Anos 2000': '#EC4899',
-  'Salseiro': '#F59E0B',
-  'Ritmos': '#10B981',
-};
+const NOITES_CONFIG = [
+  { id: 'flow', nome: 'Flow Like SP', cor: '#8B5CF6' },
+  { id: 'anos2000', nome: 'Anos 2000', cor: '#EC4899' },
+  { id: 'salseiro', nome: 'Salseiro', cor: '#F59E0B' },
+  { id: 'ritmos', nome: 'Ritmos', cor: '#10B981' },
+];
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -71,6 +71,17 @@ export default function ModulePerformance({ data }) {
     'Soft Drinks': '#6B7280',
     'Espumantes': '#F472B6',
   };
+
+  // Small multiples: compute synchronized Y-axis max
+  const yMax = useMemo(() => {
+    let max = 0;
+    for (const week of evolucaoSemanal) {
+      for (const n of NOITES_CONFIG) {
+        if (week[n.id] > max) max = week[n.id];
+      }
+    }
+    return Math.ceil(max / 10000) * 10000;
+  }, [evolucaoSemanal]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -179,29 +190,43 @@ export default function ModulePerformance({ data }) {
         </ResponsiveContainer>
       </div>
 
-      {/* Revenue evolution over weeks */}
-      <div className="bg-[#1a1a1a] rounded-xl p-5 border border-white/5">
+      {/* Small multiples: Revenue evolution per night */}
+      <div>
         <h3 className="text-sm font-semibold text-white/70 mb-4">Evolução Semanal da Receita por Noite</h3>
-        <ResponsiveContainer width="100%" height={350}>
-          <LineChart data={evolucaoSemanal}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-            <XAxis
-              dataKey="semana"
-              tick={{ fill: '#999', fontSize: 10 }}
-              tickFormatter={(v) => {
-                const d = new Date(v + 'T12:00:00');
-                return `${d.getDate()}/${d.getMonth() + 1}`;
-              }}
-            />
-            <YAxis tick={{ fill: '#999', fontSize: 11 }} tickFormatter={formatK} />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Line type="monotone" dataKey="ritmos" name="Ritmos" stroke="#10B981" strokeWidth={2} dot={false} />
-            <Line type="monotone" dataKey="anos2000" name="Anos 2000" stroke="#EC4899" strokeWidth={2} dot={false} />
-            <Line type="monotone" dataKey="salseiro" name="Salseiro" stroke="#F59E0B" strokeWidth={2} dot={false} />
-            <Line type="monotone" dataKey="flow" name="Flow Like SP" stroke="#8B5CF6" strokeWidth={2} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {NOITES_CONFIG.map((n) => (
+            <div key={n.id} className="bg-[#1a1a1a] rounded-xl p-4 border border-white/5">
+              <h4 className="text-xs font-semibold mb-3" style={{ color: n.cor }}>{n.nome}</h4>
+              <ResponsiveContainer width="100%" height={160}>
+                <LineChart data={evolucaoSemanal}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                  <XAxis
+                    dataKey="semana"
+                    tick={{ fill: '#666', fontSize: 9 }}
+                    tickFormatter={(v) => {
+                      const d = new Date(v + 'T12:00:00');
+                      return `${d.getDate()}/${d.getMonth() + 1}`;
+                    }}
+                  />
+                  <YAxis
+                    tick={{ fill: '#666', fontSize: 9 }}
+                    tickFormatter={formatK}
+                    domain={[0, yMax]}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line
+                    type="monotone"
+                    dataKey={n.id}
+                    name={n.nome}
+                    stroke={n.cor}
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
