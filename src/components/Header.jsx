@@ -29,6 +29,7 @@ export default function Header({ filters, setFilters, activeModule, setActiveMod
     { id: 'publico', label: 'Público', icon: '👥' },
     { id: 'crm', label: 'CRM & VIP', icon: '⭐' },
     { id: 'cardapio', label: 'Cardápio', icon: '🍸' },
+    { id: 'birthdays', label: 'Aniversários' }
   ];
 
   return (
