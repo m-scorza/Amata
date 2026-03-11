@@ -15,6 +15,14 @@ const NOITES_FILTRO = [
   { value: 'ritmos', label: 'Ritmos (Sáb)' },
 ];
 
+const modules = [
+ { id: 'performance', label: 'Performance' },
+ { id: 'publico', label: 'Público' },
+ { id: 'crm', label: 'CRM & VIP' },
+ { id: 'cardapio', label: 'Cardápio' }
+];
+
+
 export default function Header({ filters, setFilters, activeModule, setActiveModule }) {
   const MODULES = [
     { id: 'performance', label: 'Performance', icon: '📊' },
